@@ -1,0 +1,142 @@
+#include "anaConst.h"
+
+int compareTemplates(){
+
+  int numPtBins = anaConst::nPtBins;
+  TCanvas* c[numPtBins]; 
+  TH1D* Ceh[numPtBins];
+  TH1D* CehN[numPtBins];
+  TH1D* Ces[numPtBins];
+  TH1D* CesN[numPtBins];
+  TH1D* Beh[numPtBins];
+  TH1D* BehN[numPtBins];
+  TH1D* Bes[numPtBins];
+  TH1D* BesN[numPtBins];
+  TLegend* leg[numPtBins];
+
+  char name[1000];
+  char textLabel[1000];
+  sprintf(name,"/Users/zach/Research/pythia/200GeVTemplate/currentTemplate.root");
+  TFile *fTS = new TFile(name,"READ");
+  sprintf(name,"/Users/zach/Research/pythia/hardQCDTemplate/currentTemplate.root");
+  TFile *fTH = new TFile(name,"READ");
+  TPaveText* lbl[numPtBins];
+
+
+  for(int ptbin = 0; ptbin < numPtBins; ptbin++)
+  {
+    c[ptbin] = new TCanvas(Form("delPhi_%i",ptbin),"Pythia Delta Phi",150,0,1150,1000);
+    leg[ptbin] = new TLegend(0.65,0.65,0.75,0.8);
+    c[ptbin]->Divide(1,2);
+
+    // Init necessary plotting tools
+    lbl[ptbin] = new TPaveText(.13,.15,.5,.25,Form("NB NDC%i",ptbin));
+    sprintf(textLabel,"%.1f < P_{T} < %.1f",anaConst::lpt[ptbin],anaConst::hpt[ptbin]);
+    lbl[ptbin]->AddText(textLabel);
+    lbl[ptbin]->SetFillColor(kWhite);
+
+    Ceh[ptbin] = (TH1D*)fTH->Get(Form("hdPhiRawce_%i",ptbin));
+    Ces[ptbin] = (TH1D*)fTS->Get(Form("hdPhiRawce_%i",ptbin));
+    Beh[ptbin] = (TH1D*)fTH->Get(Form("hdPhiRawbe_%i",ptbin));
+    Bes[ptbin] = (TH1D*)fTS->Get(Form("hdPhiRawbe_%i",ptbin));
+    CehN[ptbin] = (TH1D*)fTH->Get(Form("ceEventTally_%i",ptbin));
+    CesN[ptbin] = (TH1D*)fTS->Get(Form("ceEventTally_%i",ptbin));
+    BehN[ptbin] = (TH1D*)fTH->Get(Form("beEventTally_%i",ptbin));
+    BesN[ptbin] = (TH1D*)fTS->Get(Form("beEventTally_%i",ptbin));
+
+    /*Ceh[ptbin]->Sumw2();
+      Beh[ptbin]->Sumw2();
+      Ces[ptbin]->Sumw2();
+      Bes[ptbin]->Sumw2();
+      CehN[ptbin]->Sumw2();
+      BehN[ptbin]->Sumw2();
+      CesN[ptbin]->Sumw2();
+      BesN[ptbin]->Sumw2();*/
+
+    Ceh[ptbin]->Scale(1./(Double_t)CehN[ptbin]->GetBinContent(1));
+    Ces[ptbin]->Scale(1./(Double_t)CesN[ptbin]->GetBinContent(1));
+    Beh[ptbin]->Scale(1./(Double_t)BehN[ptbin]->GetBinContent(1));
+    Bes[ptbin]->Scale(1./(Double_t)BesN[ptbin]->GetBinContent(1));
+
+    Ceh[ptbin]->SetLineColor(kRed);
+    Beh[ptbin]->SetLineColor(kRed);
+    Ces[ptbin]->SetLineColor(kBlack);
+    Bes[ptbin]->SetLineColor(kBlack);
+
+    leg[ptbin]->AddEntry(Ceh[ptbin],"HardQCD Pythia8","lpe");
+    leg[ptbin]->AddEntry(Bes[ptbin],"SoftQCD Pythia8","lpe");
+
+    Ceh[ptbin]->GetXaxis()->SetRangeUser(-3.5,3.5);
+    Beh[ptbin]->GetXaxis()->SetRangeUser(-3.5,3.5);
+    Ceh[ptbin]->GetYaxis()->SetRangeUser(0,0.35);
+    Beh[ptbin]->GetYaxis()->SetRangeUser(0,0.35);
+
+    c[ptbin]->cd(1);
+    Ceh[ptbin]->Draw();
+    Ces[ptbin]->Draw("same");
+    leg[ptbin]->Draw("same");
+    lbl[ptbin]->Draw("same");
+
+    c[ptbin]->cd(2);
+    Beh[ptbin]->Draw();
+    Bes[ptbin]->Draw("same");
+    leg[ptbin]->Draw("same");
+    lbl[ptbin]->Draw("same");
+
+
+  }
+
+  // MAke PDF
+  //Set front page
+  char FileName[100];
+  sprintf(FileName,"templateCompare");
+  TCanvas* fp = new TCanvas("fp","Front Page",100,0,1000,900);
+  fp->cd();
+  TBox *bLabel = new TBox(0.01, 0.88, 0.99, 0.99);
+  bLabel->SetFillColor(38);
+  bLabel->Draw();
+  TLatex tl;
+  tl.SetNDC();
+  tl.SetTextColor(kWhite);
+  tl.SetTextSize(0.033);
+  char tlName[100];
+  char tlName2[100];
+
+  TString titlename = FileName;
+  int found = titlename.Last('/');
+  if(found >= 0){
+    titlename.Replace(0, found+1, "");
+  } 
+  sprintf(tlName, "RUN 12 NPE-h PYTHIA COMPARE");
+  tl.SetTextSize(0.05);
+  tl.SetTextColor(kWhite);
+  tl.DrawLatex(0.05, 0.92,tlName);
+
+  TBox *bFoot = new TBox(0.01, 0.01, 0.99, 0.12);
+  bFoot->SetFillColor(38);
+  bFoot->Draw();
+  tl.SetTextColor(kWhite);
+  tl.SetTextSize(0.05);
+  tl.DrawLatex(0.05, 0.05, (new TDatime())->AsString());
+  tl.SetTextColor(kBlack);
+  tl.SetTextSize(0.03);
+  tl.DrawLatex(0.1, 0.14, titlename);
+  sprintf(tlName,"TEST");
+  tl.DrawLatex(0.1, 0.8,tlName);
+
+  // Place canvases in order
+  TCanvas* temp = new TCanvas();
+  sprintf(name, "%s.pdf[", FileName);
+  temp->Print(name);
+  sprintf(name, "%s.pdf", FileName);
+  for(int i = 0; i < numPtBins; i++)
+  {
+    temp = c[i];
+    temp->Print(name);
+  }
+  sprintf(name, "%s.pdf]", FileName);
+  temp->Print(name);
+
+
+  return 0;
+}
